@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout & Recovery Tracker</title>
+    <!-- Chart.js for analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --success: #16a34a;
+            --warning: #ca8a04;
+            --danger: #dc2626;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            padding-bottom: 4rem;
+        }
+
+        header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        header h1 {
+            font-size: 1.25rem;
+            color: var(--primary);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 1rem auto;
+            padding: 0 1rem;
+        }
+
+        /* Navigation Tabs */
+        .tabs {
+            display: flex;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0.75rem;
+            text-align: center;
+            background: none;
+            border: none;
+            font-weight: 600;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Cards & Forms */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.35rem;
+            color: var(--text-light);
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.65rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+        }
+
+        .row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .row .form-group {
+            flex: 1;
+        }
+
+        button.btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+        }
+
+        button.btn:hover {
+            background: var(--primary-hover);
+        }
+
+        /* Quick Templates & History Items */
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .template-btn {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: var(--primary);
+            padding: 0.5rem;
+            border-radius: 0.4rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .history-item {
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .badge {
+            padding: 0.2rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-green { background: #dcfce7; color: var(--success); }
+        .badge-yellow { background: #fef9c3; color: var(--warning); }
+        .badge-red { background: #fee2e2; color: var(--danger); }
+
+        .actions-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: var(--text);
+        }
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+
+        /* Responsive adjustments */
+        @media (min-width: 768px) {
+            .container {
+                max-width: 650px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>⚡ Performance & Recovery Tracker</h1>
+    </header>
+
+    <div class="container">
+        <!-- Navigation Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('log')">Log Workout</button>
+            <button class="tab-btn" onclick="switchTab('recovery')">Recovery</button>
+            <button class="tab-btn" onclick="switchTab('history')">History & Stats</button>
+        </div>
+
+        <!-- TAB 1: LOG WORKOUT -->
+        <div id="log-tab" class="tab-content active">
+            <div class="card">
+                <h2>Quick Presets</h2>
+                <div class="template-grid">
+                    <div class="template-btn" onclick="applyTemplate('Calf & Lower-Leg Strength')">Calf & Lower-Leg</div>
+                    <div class="template-btn" onclick="applyTemplate('Plyometrics & Agility')">Plyometrics & Agility</div>
+                    <div class="template-btn" onclick="applyTemplate('Mobility & Balance')">Mobility & Balance</div>
+                    <div class="template-btn" onclick="applyTemplate('General Strength')">General Strength</div>
+                </div>
+
+                <h2>Log Session</h2>
+                <form id="workout-form" onsubmit="saveWorkout(event)">
+                    <div class="form-group">
+                        <label for="workout-date">Date</label>
+                        <input type="date" id="workout-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="workout-name">Routine / Phase Name</label>
+                        <input type="text" id="workout-name" placeholder="e.g., Heavy Seated Calf Raises" required>
+                    </div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label for="sets">Sets</label>
+                            <input type="number" id="sets" placeholder="3" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="reps">Reps / Duration</label>
+                            <input type="text" id="reps" placeholder="8-10 or 30s" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label for="load">Load / Weight</label>
+                            <input type="text" id="load" placeholder="e.g. 150 lbs or BW">
+                        </div>
+                        <div class="form-group">
+                            <label for="rpe">RPE / Intensity (1-10)</label>
+                            <input type="number" min="1" max="10" id="rpe" placeholder="7">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="notes">Form & Execution Notes</label>
+                        <textarea id="notes" rows="2" placeholder="Felt strong, minimal morning stiffness..."></textarea>
+                    </div>
+                    <button type="submit" class="btn">Save Workout</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- TAB 2: RECOVERY CHECK-IN -->
+        <div id="recovery-tab" class="tab-content">
+            <div class="card">
+                <h2>Daily Readiness & Soreness</h2>
+                <form id="recovery-form" onsubmit="saveRecovery(event)">
+                    <div class="form-group">
+                        <label for="rec-date">Date</label>
+                        <input type="date" id="rec-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="soreness">Tendon / Muscle Soreness Level (1-10)</label>
+                        <input type="number" min="1" max="10" id="soreness" placeholder="1 = None, 10 = Severe" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="stiffness">Morning Stiffness / Swelling</label>
+                        <select id="stiffness">
+                            <option value="None">None</option>
+                            <option value="Mild">Mild (&lt; 5 mins)</option>
+                            <option value="Moderate">Moderate (Resolves with movement)</option>
+                            <option value="High">High (Persistent throughout day)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="resolved">Did previous soreness resolve within 24h?</label>
+                        <select id="resolved">
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn">Log Check-In</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- TAB 3: HISTORY & ANALYTICS -->
+        <div id="history-tab" class="tab-content">
+            <div class="card">
+                <h2>Soreness & Readiness Trend</h2>
+                <canvas id="recoveryChart" style="max-height: 200px;"></canvas>
+            </div>
+
+            <div class="card">
+                <h2>Logged Workouts</h2>
+                <div id="workout-history-list">
+                    <!-- Populated dynamically -->
+                </div>
+                <div class="actions-group">
+                    <button class="btn btn-secondary" onclick="exportData()">Export Backup (JSON)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set today's date automatically on inputs
+        document.getElementById('workout-date').valueAsDate = new Date();
+        document.getElementById('rec-date').valueAsDate = new Date();
+
+        let workouts = JSON.parse(localStorage.getItem('tracker_workouts')) || [];
+        let recoveries = JSON.parse(localStorage.getItem('tracker_recoveries')) || [];
+        let chartInstance = null;
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            if(tabId === 'log') {
+                document.getElementById('log-tab').classList.add('active');
+                event.target.classList.add('active');
+            } else if(tabId === 'recovery') {
+                document.getElementById('recovery-tab').classList.add('active');
+                event.target.classList.add('active');
+            } else if(tabId === 'history') {
+                document.getElementById('history-tab').classList.add('active');
+                event.target.classList.add('active');
+                renderHistory();
+                renderChart();
+            }
+        }
+
+        function applyTemplate(name) {
+            document.getElementById('workout-name').value = name;
+        }
+
+        function saveWorkout(e) {
+            e.preventDefault();
+            const newWorkout = {
+                id: Date.now(),
+                date: document.getElementById('workout-date').value,
+                name: document.getElementById('workout-name').value,
+                sets: document.getElementById('sets').value,
+                reps: document.getElementById('reps').value,
+                load: document.getElementById('load').value,
+                rpe: document.getElementById('rpe').value,
+                notes: document.getElementById('notes').value
+            };
+            workouts.unshift(newWorkout);
+            localStorage.setItem('tracker_workouts', JSON.stringify(workouts));
+            alert('Workout logged successfully!');
+            document.getElementById('workout-form').reset();
+            document.getElementById('workout-date').valueAsDate = new Date();
+        }
+
+        function saveRecovery(e) {
+            e.preventDefault();
+            const newRec = {
+                id: Date.now(),
+                date: document.getElementById('rec-date').value,
+                soreness: parseInt(document.getElementById('soreness').value),
+                stiffness: document.getElementById('stiffness').value,
+                resolved: document.getElementById('resolved').value
+            };
+            recoveries.unshift(newRec);
+            localStorage.setItem('tracker_recoveries', JSON.stringify(recoveries));
+            alert('Recovery check-in recorded!');
+            document.getElementById('recovery-form').reset();
+            document.getElementById('rec-date').valueAsDate = new Date();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('workout-history-list');
+            if (workouts.length === 0) {
+                list.innerHTML = '<p style="color:var(--text-light); font-size:0.9rem;">No workouts logged yet.</p>';
+                return;
+            }
+            list.innerHTML = workouts.map(w => `
+                <div class="history-item">
+                    <div>
+                        <strong>${w.name}</strong><br>
+                        <small style="color:var(--text-light);">${w.date} • ${w.sets} sets x ${w.reps} | Load: ${w.load || 'N/A'}</small>
+                    </div>
+                    <button onclick="deleteWorkout(${w.id})" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.85rem;">Delete</button>
+                </div>
+            `).join('');
+        }
+
+        function deleteWorkout(id) {
+            workouts = workouts.filter(w => w.id !== id);
+            localStorage.setItem('tracker_workouts', JSON.stringify(workouts));
+            renderHistory();
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({workouts, recoveries}));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", "workout_tracker_backup.json");
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('recoveryChart').getContext('2d');
+            const sortedRecs = [...recoveries].sort((a,b) => new Date(a.date) - new Date(b.date));
+            const labels = sortedRecs.map(r => r.date);
+            const sorenessData = sortedRecs.map(r => r.soreness);
+
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Soreness Level (1-10)',
+                        data: sorenessData,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 10
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
